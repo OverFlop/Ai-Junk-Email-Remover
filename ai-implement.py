@@ -21,11 +21,13 @@ def reading_email(email_input):
     start_time = time.time()
     ##generating response
     response = client.models.generate_content(
-        model="gemini-2.5-flash", contents= "read this email and rank it where its spam or a newsletter reply with just (yes this is a newsletter) or (no it is not) and reply with the email sent with" + email_input)  ##example id
+        model="gemini-2.5-flash", contents= "read only the from,subject and snippet field and check if its a spam/newsletter and only return true or false with a comma for separation and nothing else." + email_input)  ##example id
+    
 
     #filtering reponse to remove useless html parts
     text = response.candidates[0].content.parts[0].text
     print(text)
+    
     end = time.time()
 
     print("this took ", end - start_time)
