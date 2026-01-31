@@ -3,11 +3,13 @@ from datetime import datetime
 
 import aiohttp
 from flask import Flask, request
+from flask_cors import CORS
 from dotenv import load_dotenv
 import os
 import urllib.parse
 
 app = Flask(__name__)
+CORS(app, origins=["http://localhost:3000"])
 
 load_dotenv()
 
@@ -101,11 +103,7 @@ def get_auth_url():
 
 @app.get("/api/mock-emails")
 def mock_emails():
-    return [
-        {
-            "id": "1",
-            "sender": "Medium",
-            "subject": "Your weekly digest",
-            "unsubscribeUrl": "https://medium.com/unsub"
-        }
-    ]
+    with open('../mockEmails.json') as f:
+        mockEmails = json.load(f)
+
+    return mockEmails
