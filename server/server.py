@@ -61,3 +61,14 @@ def get_auth_url():
 
     url = AUTH_URL + "?" + urllib.parse.urlencode(params)
     return {"url": url}
+
+@app.get("/api/mock-emails")
+def mock_emails():
+    return [
+        {
+            "id": "1",
+            "sender": "Medium",
+            "subject": "Your weekly digest",
+            "unsubscribeUrl": "https://medium.com/unsub"
+        }
+    ]
