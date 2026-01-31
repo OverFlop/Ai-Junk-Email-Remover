@@ -13,12 +13,12 @@ load_dotenv()  # reads .env
 api_key = os.getenv("google_api")
 
 
-def reading_email():
+def reading_email(email_input):
     client = genai.Client(api_key=api_key)
 
     start_time = time.time()
     response = client.models.generate_content(
-        model="gemini-2.5-flash", contents= "read this email and rank it where its spam or a newsletter reply with just yes or no and reply with the email sent with" + d)  ##example id
+        model="gemini-2.5-flash", contents= "read this email and rank it where its spam or a newsletter reply with just yes or no and reply with the email sent with" + email_input)  ##example id
 
     text = response.candidates[0].content.parts[0].text
     print(text)
@@ -29,4 +29,4 @@ def reading_email():
     
 
 
-reading_email()
+reading_email(d)
