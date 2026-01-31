@@ -8,6 +8,7 @@ import os
 import urllib.parse
 
 app = Flask(__name__)
+CORS(app, origins=["http://localhost:3000"])
 
 load_dotenv()
 
