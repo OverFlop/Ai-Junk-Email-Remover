@@ -24,6 +24,7 @@ def reading_email(address,subject,snippet) -> bool:
 
     text = completion.choices[0].message.content.strip().lower()
     print(text)
+    return text == "true"
 
 
 reading_email("spma@spam","wanna get rich quick","get rich quickly follow this link")
