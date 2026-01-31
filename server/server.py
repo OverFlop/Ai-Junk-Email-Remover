@@ -1,11 +1,15 @@
 import asyncio
+from datetime import datetime
+
+import aiohttp
 from flask import Flask, request
-import requests
+from flask_cors import CORS
 from dotenv import load_dotenv
 import os
 import urllib.parse
 
 app = Flask(__name__)
+CORS(app, origins=["http://localhost:3000"])
 
 load_dotenv()
 
@@ -18,28 +22,45 @@ AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 
 
 @app.post("/api/token")
-def get_token():
+async def get_token():
     data = request.get_json()
     auth_code = data.get("authCode")
     if not auth_code:
         return {"error": "Missing authCode"}, 400
-    response = requests.post(TOKEN_URL, data={
-        "code": auth_code,
-        "client_id": CLIENT_ID,
-        "client_secret": CLIENT_SECRET,
-        "grant_type": "authorization_code",
-        "redirect_uri": REDIRECT_URI,
-    })
-    return response.json()
+    async with aiohttp.ClientSession() as session:
+        response = await session.post(TOKEN_URL, data={
+            "code": auth_code,
+            "client_id": CLIENT_ID,
+            "client_secret": CLIENT_SECRET,
+            "grant_type": "authorization_code",
+            "redirect_uri": REDIRECT_URI,
+        })
+    return await response.json()
 
-async def get_email(mail_id, token):
-    res = requests.get(f"https://gmail.googleapis.com/gmail/v1/users/me/messages/{mail_id}", params={
-        "format": "metadata"
-    }, headers={
-        "Authorization": f"Bearer {token}"
-    })
+
+async def get_email(session: aiohttp.ClientSession, sem: asyncio.Semaphore, mail_id, token):
+    async with sem:
+        print(f"Fetching mail {mail_id}")
+        res = await session.get(f"https://gmail.googleapis.com/gmail/v1/users/me/messages/{mail_id}", params={
+            "format": "metadata"
+        }, headers={
+            "Authorization": f"Bearer {token}"
+        })
+    print(f"Done fetching mail {mail_id}")
     res.raise_for_status()
-    return res.json()
+    data = await res.json()
+    headers = {header["name"].strip().lower(): header["value"] for header in data["payload"]["headers"]}
+    mail = {
+        "id": data["id"],
+        "receivedAt": datetime.fromtimestamp(int(data["internalDate"]) / 1000.0),
+        "labels": data.get("labelIds", []),
+        "snippet": data["snippet"].encode("ascii", "ignore").decode().strip(),
+        "from": headers["from"],
+        "subject": headers["subject"].encode("ascii", "ignore").decode().strip(),
+    }
+
+    return mail
+
 
 @app.get("/api/emails")
 async def get_emails():
@@ -52,16 +73,18 @@ async def get_emails():
         params["pageToken"] = request.args["pageToken"]
     if not token:
         return {"error": "Missing authCode"}, 400
-    res = requests.get("https://gmail.googleapis.com/gmail/v1/users/me/messages", params=params, headers={
-        "Authorization": f"Bearer {token}"
-    })
-    res.raise_for_status()
-    data = res.json()
-    tasks = []
-    for mail in data["messages"]:
-        tasks.append(get_email(mail["id"], token))
-    mails = await asyncio.gather(*tasks)
-    return {"nextPageToken": data["nextPageToken"], "data": mails}
+    sem = asyncio.Semaphore(20)
+    async with aiohttp.ClientSession() as session:
+        res = await session.get("https://gmail.googleapis.com/gmail/v1/users/me/messages", params=params, headers={
+            "Authorization": f"Bearer {token}"
+        })
+        res.raise_for_status()
+        data = await res.json()
+        tasks = []
+        for mail in data["messages"]:
+            tasks.append(get_email(session, sem, mail["id"], token))
+        mails = await asyncio.gather(*tasks)
+        return {"nextPageToken": data["nextPageToken"], "data": mails}
 
 
 @app.get("/api/authurl")
@@ -80,11 +103,7 @@ def get_auth_url():
 
 @app.get("/api/mock-emails")
 def mock_emails():
-    return [
-        {
-            "id": "1",
-            "sender": "Medium",
-            "subject": "Your weekly digest",
-            "unsubscribeUrl": "https://medium.com/unsub"
-        }
-    ]
+    with open('../mockEmails.json') as f:
+        mockEmails = json.load(f)
+
+    return mockEmails
