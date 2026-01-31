@@ -8,14 +8,14 @@ with open('mockEmails.json') as f:
 import os
 from dotenv import load_dotenv
 
-load_dotenv()  # reads .env
 
-#hidden api
-api_key = os.getenv("google_api")
 
 
 ### currently designed as one email at a time
 def reading_email(email_input):
+    load_dotenv()  # reads .env
+    #hidden api
+    api_key = os.getenv("google_api")
     client = genai.Client(api_key=api_key)
     ##starting timer
     start_time = time.time()
