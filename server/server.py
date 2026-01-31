@@ -64,7 +64,6 @@ async def get_email(session: aiohttp.ClientSession, sem: asyncio.Semaphore, mail
 
 @app.get("/api/emails")
 async def get_emails():
-    data = request.get_json()
     token = request.authorization.token
     params = {}
     if request.args.get("maxResults"):
