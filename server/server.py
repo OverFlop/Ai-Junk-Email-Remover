@@ -1,3 +1,4 @@
+import asyncio
 from flask import Flask, request
 import requests
 from dotenv import load_dotenv
@@ -15,8 +16,9 @@ REDIRECT_URI = "http://127.0.0.1:5000/callback"
 SCOPE = "https://www.googleapis.com/auth/gmail.readonly"
 AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 
-@app.post("/api/emails")
-def hello_world():
+
+@app.post("/api/token")
+def get_token():
     data = request.get_json()
     auth_code = data.get("authCode")
     if not auth_code:
@@ -28,9 +30,39 @@ def hello_world():
         "grant_type": "authorization_code",
         "redirect_uri": REDIRECT_URI,
     })
-    print(response.text)
-    token = response.json()["access_token"]
-    return {"token": token}
+    return response.json()
+
+async def get_email(mail_id, token):
+    res = requests.get(f"https://gmail.googleapis.com/gmail/v1/users/me/messages/{mail_id}", params={
+        "format": "metadata"
+    }, headers={
+        "Authorization": f"Bearer {token}"
+    })
+    res.raise_for_status()
+    return res.json()
+
+@app.get("/api/emails")
+async def get_emails():
+    data = request.get_json()
+    token = request.authorization.token
+    params = {}
+    if request.args.get("maxResults"):
+        params["maxResults"] = request.args["maxResults"]
+    if request.args.get("pageToken"):
+        params["pageToken"] = request.args["pageToken"]
+    if not token:
+        return {"error": "Missing authCode"}, 400
+    res = requests.get("https://gmail.googleapis.com/gmail/v1/users/me/messages", params=params, headers={
+        "Authorization": f"Bearer {token}"
+    })
+    res.raise_for_status()
+    data = res.json()
+    tasks = []
+    for mail in data["messages"]:
+        tasks.append(get_email(mail["id"], token))
+    mails = await asyncio.gather(*tasks)
+    return {"nextPageToken": data["nextPageToken"], "data": mails}
+
 
 @app.get("/api/authurl")
 def get_auth_url():
@@ -45,3 +77,14 @@ def get_auth_url():
 
     url = AUTH_URL + "?" + urllib.parse.urlencode(params)
     return {"url": url}
+
+@app.get("/api/mock-emails")
+def mock_emails():
+    return [
+        {
+            "id": "1",
+            "sender": "Medium",
+            "subject": "Your weekly digest",
+            "unsubscribeUrl": "https://medium.com/unsub"
+        }
+    ]
