@@ -1,3 +1,4 @@
+import asyncio
 from flask import Flask, request
 import requests
 from dotenv import load_dotenv
@@ -31,21 +32,36 @@ def get_token():
     })
     return response.json()
 
-
-@app.get("/api/emails")
-def get_emails():
-    data = request.get_json()
-    token = request.authorization.token
-    if not token:
-        return {"error": "Missing authCode"}, 400
-    res = requests.get("https://gmail.googleapis.com/gmail/v1/users/me/messages", params={
-        "q": ""
+async def get_email(mail_id, token):
+    res = requests.get(f"https://gmail.googleapis.com/gmail/v1/users/me/messages/{mail_id}", params={
+        "format": "metadata"
     }, headers={
         "Authorization": f"Bearer {token}"
     })
     res.raise_for_status()
-    mails = mails.json()["messages"]
-    return mails.json()["messages"]
+    return res.json()
+
+@app.get("/api/emails")
+async def get_emails():
+    data = request.get_json()
+    token = request.authorization.token
+    params = {}
+    if request.args.get("maxResults"):
+        params["maxResults"] = request.args["maxResults"]
+    if request.args.get("pageToken"):
+        params["pageToken"] = request.args["pageToken"]
+    if not token:
+        return {"error": "Missing authCode"}, 400
+    res = requests.get("https://gmail.googleapis.com/gmail/v1/users/me/messages", params=params, headers={
+        "Authorization": f"Bearer {token}"
+    })
+    res.raise_for_status()
+    data = res.json()
+    tasks = []
+    for mail in data["messages"]:
+        tasks.append(get_email(mail["id"], token))
+    mails = await asyncio.gather(*tasks)
+    return {"nextPageToken": data["nextPageToken"], "data": mails}
 
 
 @app.get("/api/authurl")
