@@ -1,6 +1,8 @@
 import asyncio
+
+import aiohttp
 from flask import Flask, request
-import requests
+from flask_cors import CORS
 from dotenv import load_dotenv
 import os
 import urllib.parse
@@ -18,28 +20,33 @@ AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 
 
 @app.post("/api/token")
-def get_token():
+async def get_token():
     data = request.get_json()
     auth_code = data.get("authCode")
     if not auth_code:
         return {"error": "Missing authCode"}, 400
-    response = requests.post(TOKEN_URL, data={
-        "code": auth_code,
-        "client_id": CLIENT_ID,
-        "client_secret": CLIENT_SECRET,
-        "grant_type": "authorization_code",
-        "redirect_uri": REDIRECT_URI,
-    })
+    with aiohttp.ClientSession() as session:
+        response = await session.post(TOKEN_URL, data={
+            "code": auth_code,
+            "client_id": CLIENT_ID,
+            "client_secret": CLIENT_SECRET,
+            "grant_type": "authorization_code",
+            "redirect_uri": REDIRECT_URI,
+        })
     return response.json()
 
-async def get_email(mail_id, token):
-    res = requests.get(f"https://gmail.googleapis.com/gmail/v1/users/me/messages/{mail_id}", params={
+
+async def get_email(session: aiohttp.ClientSession, mail_id, token):
+    print(f"Fetching mail {mail_id}")
+    res = await session.get(f"https://gmail.googleapis.com/gmail/v1/users/me/messages/{mail_id}", params={
         "format": "metadata"
     }, headers={
         "Authorization": f"Bearer {token}"
     })
+    print(f"Done fetching mail {mail_id}")
     res.raise_for_status()
-    return res.json()
+    return await res.json()
+
 
 @app.get("/api/emails")
 async def get_emails():
@@ -52,16 +59,17 @@ async def get_emails():
         params["pageToken"] = request.args["pageToken"]
     if not token:
         return {"error": "Missing authCode"}, 400
-    res = requests.get("https://gmail.googleapis.com/gmail/v1/users/me/messages", params=params, headers={
-        "Authorization": f"Bearer {token}"
-    })
-    res.raise_for_status()
-    data = res.json()
-    tasks = []
-    for mail in data["messages"]:
-        tasks.append(get_email(mail["id"], token))
-    mails = await asyncio.gather(*tasks)
-    return {"nextPageToken": data["nextPageToken"], "data": mails}
+    async with aiohttp.ClientSession() as session:
+        res = await session.get("https://gmail.googleapis.com/gmail/v1/users/me/messages", params=params, headers={
+            "Authorization": f"Bearer {token}"
+        })
+        res.raise_for_status()
+        data = await res.json()
+        tasks = []
+        for mail in data["messages"]:
+            tasks.append(get_email(session, mail["id"], token))
+        mails = await asyncio.gather(*tasks)
+        return {"nextPageToken": data["nextPageToken"], "data": mails}
 
 
 @app.get("/api/authurl")
