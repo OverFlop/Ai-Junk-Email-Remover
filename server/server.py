@@ -8,6 +8,8 @@ from dotenv import load_dotenv
 import os
 import urllib.parse
 
+from server import utils
+
 app = Flask(__name__)
 CORS(app, origins=["http://localhost:3000"])
 
@@ -50,6 +52,14 @@ async def get_email(session: aiohttp.ClientSession, sem: asyncio.Semaphore, mail
     res.raise_for_status()
     data = await res.json()
     headers = {header["name"].strip().lower(): header["value"] for header in data["payload"]["headers"]}
+    unsubscribe_info = utils.parse_unsubscribe_header(headers["list-unsubscribe"])
+    unsubscribe_method = "NOT_POSSIBLE"
+    if headers["list-unsubscribe-post"] == "List-Unsubscribe=One-Click" and unsubscribe_info["url"]:
+        unsubscribe_method = "POST"
+    elif unsubscribe_info["mailto"]:
+        unsubscribe_method = "MAILTO"
+    elif unsubscribe_info["url"]:
+        unsubscribe_method = "MANUAL"
     mail = {
         "id": data["id"],
         "receivedAt": datetime.fromtimestamp(int(data["internalDate"]) / 1000.0),
@@ -57,14 +67,43 @@ async def get_email(session: aiohttp.ClientSession, sem: asyncio.Semaphore, mail
         "snippet": data["snippet"].encode("ascii", "ignore").decode().strip(),
         "from": headers["from"],
         "subject": headers["subject"].encode("ascii", "ignore").decode().strip(),
+        "listUnsubscribeUrl": unsubscribe_info["url"],
+        "listUnsubscribeAddress": unsubscribe_info["mailto"],
+        "unsubscribeMethod": unsubscribe_method,
     }
 
     return mail
 
+async def unsubscribe_mail(session, sem, id, token, failed: list):
+    try:
+        mail = await get_email(session, sem, id, token)
+        if mail["unsubscribeMethod"] == "NOT_POSSIBLE" or mail["unsubscribeMethod"] == "MANUAL":
+            failed.append(id)
+            return
+        if mail["unsubscribeMethod"] == "POST":
+            await unsubscribe_post(session, mail["unsubscribeUrl"])
+        elif mail["unsubscribeMethod"] == "MAILTO":
+            await unsubscribe_mailto(session, sem, )
+    except:
+        failed.append(id)
+
+
+@app.post("/api/unsubscribe")
+async def batch_unsubscribe_emails():
+    token = request.authorization.token
+    body = request.get_json()
+    email_ids = body.get("emailIds")
+    if not isinstance(email_ids, list):
+        return {"error": "invalid payload"}, 400
+    sem = asyncio.Semaphore(20)
+    failed = []
+    async with aiohttp.ClientSession() as session:
+        await asyncio.gather(*(unsubscribe_mail(session, sem, id, token, failed) for id in email_ids))
+    return {"failed": failed}
+
 
 @app.get("/api/emails")
 async def get_emails():
-    data = request.get_json()
     token = request.authorization.token
     params = {}
     if request.args.get("maxResults"):
