@@ -8,7 +8,8 @@ from dotenv import load_dotenv
 import os
 import urllib.parse
 
-from server import utils
+from server import ai
+import utils
 
 app = Flask(__name__)
 CORS(app, origins=["http://localhost:3000"])
@@ -19,7 +20,7 @@ TOKEN_URL = "https://oauth2.googleapis.com/token"
 CLIENT_ID = os.getenv("CLIENT_ID")
 CLIENT_SECRET = os.getenv("CLIENT_SECRET")
 REDIRECT_URI = "http://127.0.0.1:5000/callback"
-SCOPE = "https://www.googleapis.com/auth/gmail.readonly"
+SCOPE = "https://www.googleapis.com/auth/gmail.modify"
 AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 
 
@@ -51,8 +52,10 @@ async def get_email(session: aiohttp.ClientSession, sem: asyncio.Semaphore, mail
     print(f"Done fetching mail {mail_id}")
     res.raise_for_status()
     data = await res.json()
-    headers = {header["name"].strip().lower(): header["value"] for header in data["payload"]["headers"]}
-    unsubscribe_info = utils.parse_unsubscribe_header(headers["list-unsubscribe"])
+    headers = {header["name"].strip().lower(): header["value"]
+               for header in data["payload"]["headers"]}
+    unsubscribe_info = utils.parse_and_categorize_unsub(
+        headers["list-unsubscribe"])
     unsubscribe_method = "NOT_POSSIBLE"
     if headers["list-unsubscribe-post"] == "List-Unsubscribe=One-Click" and unsubscribe_info["url"]:
         unsubscribe_method = "POST"
@@ -67,23 +70,31 @@ async def get_email(session: aiohttp.ClientSession, sem: asyncio.Semaphore, mail
         "snippet": data["snippet"].encode("ascii", "ignore").decode().strip(),
         "from": headers["from"],
         "subject": headers["subject"].encode("ascii", "ignore").decode().strip(),
-        "listUnsubscribeUrl": unsubscribe_info["url"],
-        "listUnsubscribeAddress": unsubscribe_info["mailto"],
+        "unsubscribeUrl": unsubscribe_info["url"],
+        "unsubscribeAddress": unsubscribe_info["mailto"],
         "unsubscribeMethod": unsubscribe_method,
     }
-
+    mail["isNewsletter"] = ai.is_newsletter(mail)
     return mail
 
-async def unsubscribe_mail(session, sem, id, token, failed: list):
+
+async def unsubscribe_mailto(session: aiohttp.ClientSession, sem: asyncio.Semaphore, token: str, address: str):
+    pass
+
+
+async def unsubscribe_mail(session: aiohttp.ClientSession, sem, id, token, failed: list):
     try:
         mail = await get_email(session, sem, id, token)
         if mail["unsubscribeMethod"] == "NOT_POSSIBLE" or mail["unsubscribeMethod"] == "MANUAL":
             failed.append(id)
             return
         if mail["unsubscribeMethod"] == "POST":
-            await unsubscribe_post(session, mail["unsubscribeUrl"])
+            res = await session.post(mail["unsubscribeUrl"], data={
+                "List-Unsubscribe": "One-Click",
+            }, headers={'Content-Type': 'application/x-www-form-urlencoded'})
+            res.raise_for_status()
         elif mail["unsubscribeMethod"] == "MAILTO":
-            await unsubscribe_mailto(session, sem, )
+            failed.append(id)
     except:
         failed.append(id)
 
@@ -139,6 +150,7 @@ def get_auth_url():
 
     url = AUTH_URL + "?" + urllib.parse.urlencode(params)
     return {"url": url}
+
 
 @app.get("/api/mock-emails")
 def mock_emails():
