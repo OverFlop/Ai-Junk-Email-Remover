@@ -15,8 +15,9 @@ REDIRECT_URI = "http://127.0.0.1:5000/callback"
 SCOPE = "https://www.googleapis.com/auth/gmail.readonly"
 AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 
-@app.post("/api/emails")
-def hello_world():
+
+@app.post("/api/token")
+def get_token():
     data = request.get_json()
     auth_code = data.get("authCode")
     if not auth_code:
@@ -28,9 +29,24 @@ def hello_world():
         "grant_type": "authorization_code",
         "redirect_uri": REDIRECT_URI,
     })
-    print(response.text)
-    token = response.json()["access_token"]
-    return {"token": token}
+    return response.json()
+
+
+@app.get("/api/emails")
+def get_emails():
+    data = request.get_json()
+    token = request.authorization.token
+    if not token:
+        return {"error": "Missing authCode"}, 400
+    res = requests.get("https://gmail.googleapis.com/gmail/v1/users/me/messages", params={
+        "q": ""
+    }, headers={
+        "Authorization": f"Bearer {token}"
+    })
+    res.raise_for_status()
+    mails = mails.json()["messages"]
+    return mails.json()["messages"]
+
 
 @app.get("/api/authurl")
 def get_auth_url():
