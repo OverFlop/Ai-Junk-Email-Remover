@@ -2,9 +2,13 @@
 
 export default function Home() {
     async function handleScan() {
-        const res = await fetch("http://127.0.0.1:5000/api/authurl");
+        /*const res = await fetch("http://127.0.0.1:5000/api/authurl");
         const data = await res.json();
-        window.location.href = data.url;
+        window.location.href = data.url;*/
+        const res = await fetch("http://127.0.0.1:5000/api/mock-emails");//For testing
+        const data = await res.json();
+        console.log("Mock emails:", data);
+
     }
 
     return (
