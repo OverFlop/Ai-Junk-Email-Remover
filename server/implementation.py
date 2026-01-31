@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 
 
 ### currently designed as one email at a time
-def reading_email(email_input):
+def reading_email(email_input) -> bool:
     load_dotenv()  # reads .env
     #hidden api
     api_key = os.getenv("google_api")
@@ -24,11 +24,10 @@ def reading_email(email_input):
 
     #filtering reponse to remove useless html parts
     text = response.candidates[0].content.parts[0].text
-    print(text)
-    
     end = time.time()
 
-    print("this took ", end - start_time)
+    print(f"Got response {text} for email {email_input['subject']} in time {end - start_time}")
+    return text == "true"
 
     
 

@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 import os
 import urllib.parse
 
-from server import ai
+import ai
 import utils
 
 app = Flask(__name__)
