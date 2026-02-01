@@ -1,28 +1,30 @@
-from google import genai
-import time
-import json
-
-
+from openai import OpenAI
 import os
+from dotenv import load_dotenv
 
 
+def reading_email(address,subject,snippet) -> bool:
+    load_dotenv()
+    api = os.getenv("ROUTERAPI")
 
+    client = OpenAI(
+    base_url="https://openrouter.ai/api/v1",
+    api_key=api
+    )
 
-### currently designed as one email at a time
-def reading_email(email_input) -> bool:
-    #hidden api
-    api_key = os.getenv("google_api")
-    client = genai.Client(api_key=api_key)
-    ##starting timer
-    start_time = time.time()
-    ##generating response
-    response = client.models.generate_content(
-        model="gemini-2.5-flash", contents= "read only the from,subject and snippet field and check if its a spam/newsletter and only return true or false and nothing else: "+json.dumps(email_input))  ##example id
-    
+    completion = client.chat.completions.create(
+        model="openai/gpt-5.2",
+        messages=[
+            {
+            "role": "user",
+            "content": f"read the from address{address} subject {subject}, snippet {snippet} from the email and determine whether it is span/newsletter return true or false only "
+            }
+    ]
+    )
 
-    #filtering reponse to remove useless html parts
-    text = response.candidates[0].content.parts[0].text
-    end = time.time()
-
-    print(f"Got response {text} for email {email_input['subject']} in time {end - start_time}")
+    text = completion.choices[0].message.content.strip().lower()
+    print(text)
     return text == "true"
+
+
+reading_email("spma@spam","wanna get rich quick","get rich quickly follow this link")
