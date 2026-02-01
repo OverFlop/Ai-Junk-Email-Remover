@@ -1,8 +1,14 @@
+"use client";
+
+import { Button } from "@mui/material";
+import { redirect } from "next/navigation";
+
 export default function Home() {
     async function signInWithGoogle() {
         const res = await fetch("http://127.0.0.1:5001/api/authurl");
         const data = await res.json();
         const url = data.url;
+        redirect(url);
     }
     return (
         <main className="flex min-h-screen items-center justify-center bg-zinc-50">
@@ -11,12 +17,12 @@ export default function Home() {
                 <p className="mb-6 text-zinc-600">
                     Scan your inbox and unsubscribe from unwanted newsletters.
                 </p>
-                <button
+                <Button
                     onClick={() => signInWithGoogle()}
                     className="w-full rounded-lg bg-black py-3 text-white"
                 >
                     Sign in with Google
-                </button>
+                </Button>
             </div>
         </main>
     );

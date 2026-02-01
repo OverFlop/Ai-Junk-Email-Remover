@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams, useRouter, redirect } from "next/navigation";
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import Paper from '@mui/material/Paper';
-import { Box, Card, CardActionArea, CardContent, LinearProgress, Typography } from "@mui/material";
+import { Box, Button, Card, CardActionArea, CardContent, LinearProgress, Stack, Typography } from "@mui/material";
 import SenderCard from "../components/SenderCard";
 
 export interface Email {
@@ -31,10 +31,15 @@ export default function EmailsPage() {
     const [emails, setEmails] = useState<Email[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [success, setSuccess] = useState<boolean>(false);
+
+    let token = useRef("");
 
     useEffect(() => {
         const code = searchParams.get("code");
-        if (!code) return;
+        if (!code) {
+            redirect("/");
+        }
 
         async function getAccessToken() {
             const res = await fetch("http://127.0.0.1:5001/api/token", {
@@ -47,6 +52,7 @@ export default function EmailsPage() {
             }
             const data = await res.json();
             const accessToken = data["access_token"];
+            token = accessToken;
             return accessToken;
         }
 
@@ -71,6 +77,7 @@ export default function EmailsPage() {
                     break;
                 }
                 setEmails(emails.concat(part.data));
+                break;
                 if (!part.nextPageToken) {
                     break;
                 }
@@ -90,42 +97,75 @@ export default function EmailsPage() {
                 messages: []
             });
         }
-        sendersMap.get(email.from)!.messages.push(email);
+        let sender = sendersMap.get(email.from)!;
+        if (sender.messages.some(msg => msg.isSelected)) {
+            email.isSelected = true;
+        }
+        sender.messages.push(email);
     }
 
     let senders = sendersMap.values().toArray();
 
     const toggleSelectedCard = useCallback((index: number) => {
-        senders[index].isSelected = !senders[index].isSelected;
         for (let msg of senders[index].messages) {
-            msg.isSelected = senders[index].isSelected;
+            msg.isSelected = !msg.isSelected;
         }
         setEmails(senders.flatMap(sender => sender.messages));
     }, []);
 
+    const handleUnsubscribe = () => {
+        fetch("http://127.0.0.1:5001/api/unsubscribe", {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify(emails.filter(msg => msg.isSelected).map(msg => msg.id)),
+        }).then(() => setSuccess(true)).catch((err) => setError(err));
+    };
+
     if (error) {
+        redirect("/");
+    }
+    if (success) {
         return (
-            <div>
-                An error occurred 😢
-            </div>
+            <>
+                Done! ✔️
+            </>
         )
     }
 
     return (
         <>
-            {loading && <LinearProgress />}
-            <Box
-                sx={{
-                    width: '100%',
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(min(200px, 100%), 1fr))',
-                    gap: 2,
-                }}
-            >
-                {senders.map((sender, index) => (
-                    <SenderCard sender={sender} index={index} toggleSelectedCard={toggleSelectedCard}></SenderCard>
-                ))}
-            </Box>
+            <Box sx={{ position: 'relative', width: '100%' }}>
+                {loading && <LinearProgress />}
+                {!loading &&
+                    <Stack
+                        direction="row"
+                        justifyContent="flex-end"
+                        sx={{ padding: 4 }}
+                    >
+                        <Button
+                            variant="contained"
+                            color="primary"
+                            onClick={handleUnsubscribe}
+                        >
+                            Unsubscribe Selected
+                        </Button>
+                    </Stack>}
+                <Box
+                    sx={{
+                        width: '100%',
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(min(200px, 100%), 1fr))',
+                        gap: 2,
+                        padding: 4,
+                    }}
+                >
+                    {senders.map((sender, index) => (
+                        <SenderCard key={index} sender={sender} index={index} toggleSelectedCard={toggleSelectedCard}></SenderCard>
+                    ))}
+                </Box>
+            </Box >
         </>
     );
 }

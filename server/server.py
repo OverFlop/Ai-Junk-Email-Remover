@@ -19,7 +19,7 @@ load_dotenv()
 TOKEN_URL = "https://oauth2.googleapis.com/token"
 CLIENT_ID = os.getenv("CLIENT_ID")
 CLIENT_SECRET = os.getenv("CLIENT_SECRET")
-REDIRECT_URI = "http://127.0.0.1:5000/callback"
+REDIRECT_URI = "http://localhost:3000/callback"
 SCOPE = "https://www.googleapis.com/auth/gmail.modify"
 AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 
@@ -31,14 +31,14 @@ async def get_token():
     if not auth_code:
         return {"error": "Missing authCode"}, 400
     async with aiohttp.ClientSession() as session:
-        response = await session.post(TOKEN_URL, data={
+        async with session.post(TOKEN_URL, data={
             "code": auth_code,
             "client_id": CLIENT_ID,
             "client_secret": CLIENT_SECRET,
             "grant_type": "authorization_code",
             "redirect_uri": REDIRECT_URI,
-        })
-    return await response.json()
+        }) as response:
+            return await response.json()
 
 
 async def get_email(session: aiohttp.ClientSession, sem: asyncio.Semaphore, mail_id, token):
@@ -55,9 +55,9 @@ async def get_email(session: aiohttp.ClientSession, sem: asyncio.Semaphore, mail
     headers = {header["name"].strip().lower(): header["value"]
                for header in data["payload"]["headers"]}
     unsubscribe_info = utils.parse_and_categorize_unsub(
-        headers["list-unsubscribe"])
+        headers.get("list-unsubscribe", ""))
     unsubscribe_method = "NOT_POSSIBLE"
-    if headers["list-unsubscribe-post"] == "List-Unsubscribe=One-Click" and unsubscribe_info["url"]:
+    if headers.get("list-unsubscribe-post") == "List-Unsubscribe=One-Click" and unsubscribe_info["url"]:
         unsubscribe_method = "POST"
     elif unsubscribe_info["mailto"]:
         unsubscribe_method = "MAILTO"
@@ -74,7 +74,7 @@ async def get_email(session: aiohttp.ClientSession, sem: asyncio.Semaphore, mail
         "unsubscribeAddress": unsubscribe_info["mailto"],
         "unsubscribeMethod": unsubscribe_method,
     }
-    mail["isNewsletter"] = True
+    mail["isSelected"] = await ai.reading_email(mail["from"], mail["subject"], mail["snippet"])
     return mail
 
 
