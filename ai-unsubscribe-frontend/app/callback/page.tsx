@@ -6,6 +6,7 @@ import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import Paper from '@mui/material/Paper';
 import { Box, Button, Card, CardActionArea, CardContent, LinearProgress, Stack, Typography } from "@mui/material";
 import SenderCard from "../components/SenderCard";
+import Link from "next/link";
 
 export interface Email {
     summary: string,
@@ -20,7 +21,6 @@ export interface Email {
 
 export interface Sender {
     address: string,
-    isSelected: boolean,
     messages: Email[],
 }
 
@@ -93,7 +93,6 @@ export default function EmailsPage() {
         if (!sendersMap.has(email.from)) {
             sendersMap.set(email.from, {
                 address: email.from,
-                isSelected: false,
                 messages: []
             });
         }
@@ -128,9 +127,10 @@ export default function EmailsPage() {
     }
     if (success) {
         return (
-            <>
-                Done! ✔️
-            </>
+            <div className="p-4 flex flex-col">
+                <span className="m-2">Done!</span>
+                <Button variant="contained" color="primary" onClick={() => redirect("/")} className="m-2">Go Back</Button>
+            </div>
         )
     }
 
@@ -149,7 +149,7 @@ export default function EmailsPage() {
                             color="primary"
                             onClick={handleUnsubscribe}
                         >
-                            Unsubscribe Selected
+                            Unsubscribe Selected ({senders.filter(sender => sender.messages.some(msg => msg.isSelected)).length})
                         </Button>
                     </Stack>}
                 <Box
