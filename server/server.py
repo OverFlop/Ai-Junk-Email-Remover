@@ -41,7 +41,7 @@ async def get_token():
             return await response.json()
 
 
-async def get_email(session: aiohttp.ClientSession, sem: asyncio.Semaphore, mail_id, token):
+async def get_email(session: aiohttp.ClientSession, sem: asyncio.Semaphore, mail_id, token, ask_ai: bool = False):
     async with sem:
         print(f"Fetching mail {mail_id}")
         res = await session.get(f"https://gmail.googleapis.com/gmail/v1/users/me/messages/{mail_id}", params={
@@ -74,7 +74,8 @@ async def get_email(session: aiohttp.ClientSession, sem: asyncio.Semaphore, mail
         "unsubscribeAddress": unsubscribe_info["mailto"],
         "unsubscribeMethod": unsubscribe_method,
     }
-    mail["isSelected"] = await ai.reading_email(mail["from"], mail["subject"], mail["snippet"])
+    if ask_ai:
+        mail["isSelected"] = await ai.reading_email(mail["from"], mail["subject"], mail["snippet"])
     return mail
 
 
@@ -86,16 +87,17 @@ async def unsubscribe_mail(session: aiohttp.ClientSession, sem, id, token, faile
     try:
         mail = await get_email(session, sem, id, token)
         if mail["unsubscribeMethod"] == "NOT_POSSIBLE" or mail["unsubscribeMethod"] == "MANUAL":
-            failed.append(id)
-            return
+            raise Exception("not possible to unsubscribe")
         if mail["unsubscribeMethod"] == "POST":
             res = await session.post(mail["unsubscribeUrl"], data={
                 "List-Unsubscribe": "One-Click",
             }, headers={'Content-Type': 'application/x-www-form-urlencoded'})
             res.raise_for_status()
+            print(f"Unsubscribed from {mail['from']}")
         elif mail["unsubscribeMethod"] == "MAILTO":
-            failed.append(id)
-    except:
+            raise Exception("mailto not currently supported")
+    except Exception as e:
+        print(e)
         failed.append(id)
 
 
@@ -103,7 +105,7 @@ async def unsubscribe_mail(session: aiohttp.ClientSession, sem, id, token, faile
 async def batch_unsubscribe_emails():
     token = request.authorization.token
     body = request.get_json()
-    email_ids = body.get("emailIds")
+    email_ids = body
     if not isinstance(email_ids, list):
         return {"error": "invalid payload"}, 400
     sem = asyncio.Semaphore(20)
@@ -132,7 +134,7 @@ async def get_emails():
         data = await res.json()
         tasks = []
         for mail in data["messages"]:
-            tasks.append(get_email(session, sem, mail["id"], token))
+            tasks.append(get_email(session, sem, mail["id"], token, ask_ai=True))
         mails = await asyncio.gather(*tasks)
         return {"nextPageToken": data["nextPageToken"], "data": mails}
 

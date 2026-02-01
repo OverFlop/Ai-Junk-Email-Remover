@@ -18,7 +18,7 @@ export interface Sender {
 
 const SenderCard = ({ sender, index, toggleSelectedCard }: { sender: Sender, index: number, toggleSelectedCard: (index: number) => void }) => {
   return (
-    <Card key={sender.address}>
+    <Card key={index}>
       <CardActionArea
         onClick={() => toggleSelectedCard(index)}
         data-active={sender.messages.some(msg => msg.isSelected) ? '' : undefined}

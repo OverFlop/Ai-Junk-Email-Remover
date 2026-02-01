@@ -33,7 +33,7 @@ export default function EmailsPage() {
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState<boolean>(false);
 
-    let token = useRef("");
+    let [token, setToken] = useState("");
 
     useEffect(() => {
         const code = searchParams.get("code");
@@ -52,7 +52,6 @@ export default function EmailsPage() {
             }
             const data = await res.json();
             const accessToken = data["access_token"];
-            token = accessToken;
             return accessToken;
         }
 
@@ -83,6 +82,7 @@ export default function EmailsPage() {
                 }
                 pageToken = part.nextPageToken;
             }
+            setToken(token);
         }
 
         getEmails().catch(err => setError(err)).then(() => setLoading(false));
@@ -105,21 +105,23 @@ export default function EmailsPage() {
 
     let senders = sendersMap.values().toArray();
 
-    const toggleSelectedCard = useCallback((index: number) => {
+    const toggleSelectedCard = (index: number) => {
         for (let msg of senders[index].messages) {
             msg.isSelected = !msg.isSelected;
         }
         setEmails(senders.flatMap(sender => sender.messages));
-    }, []);
+    };
 
     const handleUnsubscribe = () => {
+        setLoading(true);
         fetch("http://127.0.0.1:5001/api/unsubscribe", {
             method: "POST",
             headers: {
-                "Authorization": `Bearer ${token}`
+                "Authorization": `Bearer ${token}`,
+                "Content-Type": "application/json",
             },
             body: JSON.stringify(emails.filter(msg => msg.isSelected).map(msg => msg.id)),
-        }).then(() => setSuccess(true)).catch((err) => setError(err));
+        }).then(() => { setSuccess(true); setLoading(false); }).catch((err) => setError(err));
     };
 
     if (error) {
@@ -133,6 +135,8 @@ export default function EmailsPage() {
             </div>
         )
     }
+
+    console.log("hi");
 
     return (
         <>
