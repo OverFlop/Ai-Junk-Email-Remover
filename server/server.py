@@ -65,7 +65,7 @@ async def get_email(session: aiohttp.ClientSession, sem: asyncio.Semaphore, mail
         unsubscribe_method = "MANUAL"
     mail = {
         "id": data["id"],
-        "receivedAt": datetime.fromtimestamp(int(data["internalDate"]) / 1000.0),
+        # "receivedAt": datetime.fromtimestamp(int(data["internalDate"]) / 1000.0),
         "labels": data.get("labelIds", []),
         "snippet": data["snippet"].encode("ascii", "ignore").decode().strip(),
         "from": headers["from"],
@@ -74,7 +74,7 @@ async def get_email(session: aiohttp.ClientSession, sem: asyncio.Semaphore, mail
         "unsubscribeAddress": unsubscribe_info["mailto"],
         "unsubscribeMethod": unsubscribe_method,
     }
-    mail["isNewsletter"] = ai.is_newsletter(mail)
+    mail["isNewsletter"] = True
     return mail
 
 

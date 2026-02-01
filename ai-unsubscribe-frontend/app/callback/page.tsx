@@ -1,33 +1,132 @@
 "use client";
 
-import { useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { DataGrid, GridColDef } from '@mui/x-data-grid';
+import Paper from '@mui/material/Paper';
+import { Box, Card, CardActionArea, CardContent, LinearProgress, Typography } from "@mui/material";
+import SenderCard from "../components/SenderCard";
 
-export default function CallbackPage() {
+export interface Email {
+    summary: string,
+    subject: string
+    id: string,
+    from: string,
+    isSelected: boolean,
+    unsubscribeMethod: string,
+    unsubscribeUrl: string,
+    unsubscribeAddress: string,
+}
+
+export interface Sender {
+    address: string,
+    isSelected: boolean,
+    messages: Email[],
+}
+
+export default function EmailsPage() {
     const searchParams = useSearchParams();
     const router = useRouter();
+
+    const [emails, setEmails] = useState<Email[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
     useEffect(() => {
         const code = searchParams.get("code");
         if (!code) return;
 
-        async function sendCode() {
-            await fetch("http://127.0.0.1:5000/api/emails", {
+        async function getAccessToken() {
+            const res = await fetch("http://127.0.0.1:5001/api/token", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ authCode: code }),
             });
-
-            // optional: redirect to inbox page later
-            // router.push("/inbox");
+            if (!res.ok) {
+                throw new Error("failed to sign in");
+            }
+            const data = await res.json();
+            const accessToken = data["access_token"];
+            return accessToken;
         }
 
-        sendCode();
+        async function getPart(token: string, pageToken?: string) {
+            const params = new URLSearchParams();
+            if (pageToken) {
+                params.set("pageToken", pageToken);
+            }
+            const res = await fetch("http://127.0.0.1:5001/api/emails?" + params.toString(), {
+                method: "GET",
+                headers: { "Authorization": `Bearer ${token}`, "Accept": "application/json" }
+            });
+            return res.json();
+        }
+
+        async function getEmails() {
+            const token = await getAccessToken();
+            let pageToken;
+            while (true) {
+                const part = await getPart(token, pageToken);
+                if (!part.data) {
+                    break;
+                }
+                setEmails(emails.concat(part.data));
+                if (!part.nextPageToken) {
+                    break;
+                }
+                pageToken = part.nextPageToken;
+            }
+        }
+
+        getEmails().catch(err => setError(err)).then(() => setLoading(false));
     }, [searchParams]);
 
+    let sendersMap = new Map<String, Sender>();
+    for (let email of emails) {
+        if (!sendersMap.has(email.from)) {
+            sendersMap.set(email.from, {
+                address: email.from,
+                isSelected: false,
+                messages: []
+            });
+        }
+        sendersMap.get(email.from)!.messages.push(email);
+    }
+
+    let senders = sendersMap.values().toArray();
+
+    const toggleSelectedCard = useCallback((index: number) => {
+        senders[index].isSelected = !senders[index].isSelected;
+        for (let msg of senders[index].messages) {
+            msg.isSelected = senders[index].isSelected;
+        }
+        setEmails(senders.flatMap(sender => sender.messages));
+    }, []);
+
+    if (error) {
+        return (
+            <div>
+                An error occurred ðŸ˜¢
+            </div>
+        )
+    }
+
     return (
-        <main className="flex min-h-screen items-center justify-center">
-            <p className="text-lg">Scanning your inbox…</p>
-        </main>
+        <>
+            {loading && <LinearProgress />}
+            <Box
+                sx={{
+                    width: '100%',
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(min(200px, 100%), 1fr))',
+                    gap: 2,
+                }}
+            >
+                {senders.map((sender, index) => (
+                    <SenderCard sender={sender} index={index} toggleSelectedCard={toggleSelectedCard}></SenderCard>
+                ))}
+            </Box>
+        </>
     );
 }
+

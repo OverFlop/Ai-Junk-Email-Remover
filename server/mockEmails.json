@@ -1,0 +1,182 @@
+[
+  {
+    "id": "1",
+    "from": "newsletter@medium.com",
+    "received": "Wed, 29 Nov 2025 10:11:35 -0800",
+    "subject": "Your weekly digest",
+    "snippet": "Top stories from this week...",
+    "isNewsletter": null,
+    "unsubscribeURL": "https://medium.com/unsubscribe"
+  },
+  {
+    "id": "2",
+    "from": "alerts@fakemedium.com",
+    "received": "Thu, 30 Nov 2025 10:11:35 -0800",
+    "subject": "Your account has been hacked",
+    "snippet": "Send your email and password to ...",
+    "isNewsletter": null,
+    "unsubscribeURL": null
+  },
+  {
+    "id": "3",
+    "from": "no-reply@substack.com",
+    "received": "Fri, 01 Dec 2025 08:42:10 -0800",
+    "subject": "5 newsletters you might like",
+    "snippet": "Here are this week’s recommended reads...",
+    "isNewsletter": null,
+    "unsubscribeURL": "https://substack.com/unsubscribe"
+  },
+  {
+    "id": "4",
+    "from": "news@github.com",
+    "received": "Fri, 01 Dec 2025 12:30:00 -0800",
+    "subject": "GitHub weekly update",
+    "snippet": "Here’s what happened in your repositories...",
+    "isNewsletter": null,
+    "unsubscribeURL": "https://github.com/settings/emails"
+  },
+  {
+    "id": "5",
+    "from": "newsletter@gmail.com",
+    "received": "Sat, 02 Dec 2025 09:15:45 -0800",
+    "subject": "Product updates you missed",
+    "snippet": "We’ve added new features you’ll love...",
+    "isNewsletter": null,
+    "unsubscribeURL": "https://example.com/unsubscribe"
+  },
+  {
+    "id": "6",
+    "from": "security@gmail.com",
+    "received": "Sat, 02 Dec 2025 14:05:22 -0800",
+    "subject": "Update your password today",
+    "snippet": "Your password has been out of date for 2 months...",
+    "isNewsletter": null,
+    "unsubscribeURL": null
+  },
+  {
+    "id": "7",
+    "from": "news@techcrunch.com",
+    "received": "Sun, 03 Dec 2025 07:30:00 -0800",
+    "subject": "Today’s top tech news",
+    "snippet": "AI, startups, and the latest funding rounds...",
+    "isNewsletter": null,
+    "unsubscribeURL": "https://techcrunch.com/unsubscribe"
+  },
+  {
+    "id": "8",
+    "from": "offers@amazon.com",
+    "received": "Sun, 03 Dec 2025 11:20:18 -0800",
+    "subject": "Deals recommended for you",
+    "snippet": "Save big on products you viewed...",
+    "isNewsletter": null,
+    "unsubscribeURL": "https://amazon.com/email-preferences"
+  },
+  {
+    "id": "9",
+    "from": "no-reply@linkedin.com",
+    "received": "Mon, 04 Dec 2025 08:00:00 -0800",
+    "subject": "New jobs you may be interested in",
+    "snippet": "Based on your profile and activity...",
+    "isNewsletter": null,
+    "unsubscribeURL": "https://linkedin.com/psettings/email"
+  },
+  {
+    "id": "10",
+    "from": "alerts@bank.com",
+    "received": "Mon, 04 Dec 2025 15:45:12 -0800",
+    "subject": "Unusual login attempt detected",
+    "snippet": "We noticed a sign-in attempt from a new device...",
+    "isNewsletter": null,
+    "unsubscribeURL": null
+  },
+  {
+    "id": "11",
+    "from": "newsletter@spotify.com",
+    "received": "Tue, 05 Dec 2025 09:10:55 -0800",
+    "subject": "New music just for you",
+    "snippet": "Discover tracks picked based on your taste...",
+    "isNewsletter": null,
+    "unsubscribeURL": "https://spotify.com/account/notifications"
+  },
+  {
+    "id": "12",
+    "from": "updates@notion.so",
+    "received": "Tue, 05 Dec 2025 13:22:00 -0800",
+    "subject": "What’s new in Notion",
+    "snippet": "New templates, faster search, and more...",
+    "isNewsletter": null,
+    "unsubscribeURL": "https://notion.so/email-settings"
+  },
+  {
+    "id": "13",
+    "from": "support@apple.com",
+    "received": "Wed, 06 Dec 2025 10:00:00 -0800",
+    "subject": "Your receipt from Apple",
+    "snippet": "Thank you for your purchase...",
+    "isNewsletter": null,
+    "unsubscribeURL": null
+  },
+  {
+    "id": "14",
+    "from": "newsletter@dev.to",
+    "received": "Wed, 06 Dec 2025 16:45:30 -0800",
+    "subject": "Top developer posts this week",
+    "snippet": "JavaScript, Python, and AI highlights...",
+    "isNewsletter": null,
+    "unsubscribeURL": "https://dev.to/settings/email"
+  },
+  {
+    "id": "15",
+    "from": "news@bbc.co.uk",
+    "received": "Thu, 07 Dec 2025 07:00:00 -0800",
+    "subject": "Morning news briefing",
+    "snippet": "Here are today’s headlines...",
+    "isNewsletter": null,
+    "unsubscribeURL": "https://bbc.co.uk/email"
+  },
+  {
+    "id": "16",
+    "from": "alerts@google.com",
+    "received": "Thu, 07 Dec 2025 12:12:12 -0800",
+    "subject": "Security alert",
+    "snippet": "A new sign-in was detected on your account...",
+    "isNewsletter": null,
+    "unsubscribeURL": null
+  },
+  {
+    "id": "17",
+    "from": "newsletter@coursera.org",
+    "received": "Fri, 08 Dec 2025 09:40:00 -0800",
+    "subject": "Courses you may like",
+    "snippet": "Boost your skills with these courses...",
+    "isNewsletter": null,
+    "unsubscribeURL": "https://coursera.org/account/notifications"
+  },
+  {
+    "id": "18",
+    "from": "info@figma.com",
+    "received": "Fri, 08 Dec 2025 14:55:45 -0800",
+    "subject": "Design tips and inspiration",
+    "snippet": "See how top designers are working...",
+    "isNewsletter": null,
+    "unsubscribeURL": "https://figma.com/settings"
+  },
+  {
+    "id": "19",
+    "from": "billing@netflix.com",
+    "received": "Sat, 09 Dec 2025 08:30:00 -0800",
+    "subject": "Your Netflix payment receipt",
+    "snippet": "Here’s your monthly receipt...",
+    "isNewsletter": null,
+    "unsubscribeURL": null
+  },
+  {
+    "id": "20",
+    "from": "newsletter@openai.com",
+    "received": "Sat, 09 Dec 2025 11:11:11 -0800",
+    "subject": "What’s new in AI",
+    "snippet": "Updates, research, and product news...",
+    "isNewsletter": null,
+    "unsubscribeURL": "https://openai.com/unsubscribe"
+  }
+]

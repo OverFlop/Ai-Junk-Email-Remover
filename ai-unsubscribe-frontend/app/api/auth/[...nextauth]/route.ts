@@ -1,7 +1,7 @@
 import NextAuth from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
 
-const handler = NextAuth({
+const handler = NextAuth({ 
     providers: [
         GoogleProvider({
             clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -10,7 +10,7 @@ const handler = NextAuth({
                 params: {
                     scope: "openid email profile https://www.googleapis.com/auth/gmail.readonly"
                 }
-            }
+            },
         }),
     ],
 })
